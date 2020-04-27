@@ -1,0 +1,138 @@
+﻿@page "/translate"
+@using VigenereCipher.Data
+@using System.IO;
+@inject CipherService CipherService
+@inject IMatToaster Toaster
+@inject IJSRuntime JSRuntime
+
+
+<div>
+    <div class="wrapper">
+        <div class="left">
+            <div class="mat-elevation-z5" style="padding: 15px">
+                <MatTextField @bind-Value="@InputText" PlaceHolder="Enter text" FullWidth="true" TextArea="true" Rows="10" Required="true"></MatTextField>
+            </div>
+        </div>
+        <div class="right" style="margin-left: 30px">
+            <div class="mat-elevation-z5" style="padding: 15px">
+                <MatTextField @bind-Value="@OutputText" Label="Result text" FullWidth="true" ReadOnly="true" TextArea="true" Rows="10"></MatTextField>
+            </div>
+        </div>
+    </div>
+    <div style="margin-top: 30px">
+        <MatStringField @bind-Value="@Key" Label="Key" Icon="vpn_key" Outlined="true" Required="true"></MatStringField>
+    </div>
+    <div style="margin-top: 15px">
+        <MatSelectItem @bind-Value="@Crypt" Label="Cryptor mode" Items="@_cryptItems"></MatSelectItem>
+    </div>
+    <div style="margin-top: 15px">
+        <MatSelectItem @bind-Value="@Language" Label="Language" Items="@_languageItems"></MatSelectItem>
+    </div>
+    <div style="margin-top: 10px">
+        <MatButton Raised="true" OnClick="@Start">Start</MatButton>
+    </div>
+    <div style="margin-top: 10px">
+        <MatStringField @bind-Value="@SavedFileName" Label="File name" Icon="insert_drive_file" Required="true"></MatStringField>
+        <MatButton Raised="true" OnClick="@Download">Save result as .txt</MatButton>
+        <MatButton Raised="true" OnClick="@DownloadDocx">Save result as .docx</MatButton>
+    </div>
+</div>
+
+@code
+{
+    private string InputText { get; set; }
+    private string Key { get; set; }
+    private string OutputText { get; set; }
+    private string SavedFileName { get; set; }
+    private Cipher.CryptMode Crypt { get; set; }
+    readonly Cipher.CryptMode[] _cryptItems = Enum.GetValues(typeof(Cipher.CryptMode)).Cast<Cipher.CryptMode>().ToArray();
+    private Cipher.LanguageMode Language { get; set; }
+    readonly Cipher.LanguageMode[] _languageItems = Enum.GetValues(typeof(Cipher.LanguageMode)).Cast<Cipher.LanguageMode>().ToArray();
+
+    private async void Start()
+    {
+        try
+        {
+            OutputText = await CipherService.GetResultTextAsync(InputText, Language, Key, Crypt);
+            ShowSuccess(Crypt);
+        }
+        catch (Exception e)
+        {
+            ShowError(e.Message);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ShowError(string error)
+    {
+        Toaster.Add(error, MatToastType.Danger, "Error");
+    }
+
+    private void ShowSuccess(Cipher.CryptMode crypt)
+    {
+        switch (crypt)
+        {
+            case Cipher.CryptMode.Decrypt:
+                Toaster.Add("The text has been successfully decrypted.", MatToastType.Success, "Successfully");
+                break;
+            case Cipher.CryptMode.Encrypt:
+                Toaster.Add("The text has been successfully encrypted.", MatToastType.Success, "Successfully");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(crypt), crypt, null);
+        }
+    }
+
+
+    private async void Download()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
+            {
+                ShowError("There is no file name or result to save.");
+            }
+            else
+            {
+                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
+                await JSRuntime.InvokeAsync<object>(
+                    "FileSaveAs",
+                    newFileName + ".txt",
+                    OutputText
+                    );
+            }
+        }
+        catch (Exception e)
+        {
+            ShowError(e.Message);
+        }
+    }
+    
+    private async void DownloadDocx()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
+            {
+                ShowError("There is no file name or result to save.");
+            }
+            else
+            {
+                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
+                var content = DocumentService.DownloadDocxFromText(OutputText);
+                await JSRuntime.InvokeAsync<object>(
+                    "DocxFileSaveAs",
+                    newFileName + ".docx",
+                    Convert.ToBase64String(content)
+                    );
+            }
+        }
+        catch (Exception e)
+        {
+            ShowError(e.Message);
+        }
+    }
+}

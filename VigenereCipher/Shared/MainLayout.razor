@@ -1,0 +1,50 @@
+﻿@inherits LayoutComponentBase
+
+
+<MatAppBarContainer>
+    @* Header *@
+    <MatAppBar Fixed="true">
+        <MatAppBarRow>
+            <MatAppBarSection>
+                <MatIconButton Icon="menu" OnClick="@(e => ButtonClick())"></MatIconButton>
+                <MatAppBarTitle>Vigenere Cipher</MatAppBarTitle>
+            </MatAppBarSection>
+        </MatAppBarRow>
+    </MatAppBar>
+    <MatAppBarContent>
+        @* Naviagation Drawer *@
+        <MatDrawerContainer>
+            <MatDrawer @bind-Opened="@Opened" Mode="@MatDrawerMode.Modal">
+                @* List *@
+                <MatNavMenu>
+                    <MatNavSubMenu>
+                        <MatNavItem href=""><MatIcon Icon="home"></MatIcon>&nbsp;Home</MatNavItem>
+                        <MatNavSubMenuHeader>
+                            <MatNavItem AllowSelection="false"><MatIcon Icon="translate"></MatIcon>&nbsp;Vigenere Solver</MatNavItem>
+                        </MatNavSubMenuHeader>
+                        <MatNavSubMenuList>
+                            <MatNavItem href="translate"><MatIcon Icon="text_format"></MatIcon>&nbsp;Text</MatNavItem>
+                            <MatNavItem href="docs"><MatIcon Icon="insert_drive_file"></MatIcon>&nbsp;Documents</MatNavItem>
+                        </MatNavSubMenuList>
+                    </MatNavSubMenu>
+                </MatNavMenu>
+            </MatDrawer>
+        </MatDrawerContainer>
+        @* Main content *@
+        <MatDrawerContent Style="width: 100vw; height: 100vh;">
+            <div class="content px-5 container" style="max-width: 1500px">
+                @Body
+            </div>
+        </MatDrawerContent>
+    </MatAppBarContent>
+</MatAppBarContainer>
+
+@code
+{
+    bool Opened { get; set; }
+
+    void ButtonClick()
+    {
+        Opened = !Opened;
+    }
+}
