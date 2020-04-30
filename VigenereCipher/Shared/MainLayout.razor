@@ -1,6 +1,5 @@
 ﻿@inherits LayoutComponentBase
 
-
 <MatAppBarContainer>
     @* Header *@
     <MatAppBar Fixed="true">
@@ -8,6 +7,11 @@
             <MatAppBarSection>
                 <MatIconButton Icon="menu" OnClick="@(e => ButtonClick())"></MatIconButton>
                 <MatAppBarTitle>Vigenere Cipher</MatAppBarTitle>
+            </MatAppBarSection>
+            <MatAppBarSection Align="@MatAppBarSectionAlign.End">
+                <MatIconButton Link="https://github.com/pimushkin/VigenereCipher" Style="display: flex; justify-content: center">
+                    <i class="fa fa-github" aria-hidden="true"></i>
+                </MatIconButton>
             </MatAppBarSection>
         </MatAppBarRow>
     </MatAppBar>
@@ -31,7 +35,7 @@
             </MatDrawer>
         </MatDrawerContainer>
         @* Main content *@
-        <MatDrawerContent Style="width: 100vw; height: 100vh;">
+        <MatDrawerContent Style="width: 100vw">
             <div class="content px-5 container" style="max-width: 1500px">
                 @Body
             </div>

@@ -22,7 +22,6 @@ namespace VigenereCipher.Data
         private string _key;
 
         private LanguageMode _language;
-        private CryptMode Crypt { get; }
 
         public Cipher(string inputText, LanguageMode language, string key, CryptMode cryptCrypt)
         {
@@ -31,6 +30,8 @@ namespace VigenereCipher.Data
             Key = key;
             Crypt = cryptCrypt;
         }
+
+        private CryptMode Crypt { get; }
 
         private string Alphabet { get; set; }
 
@@ -90,6 +91,11 @@ namespace VigenereCipher.Data
             }
         }
 
+        /// <summary>
+        ///     Get the result of encrypting or decrypting the text.
+        /// </summary>
+        /// <returns>Text as a result of encryption or decryption.</returns>
+        /// <exception cref="Exception"></exception>
         public string GetResultText()
         {
             try

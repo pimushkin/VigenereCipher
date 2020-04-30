@@ -1,8 +1,7 @@
 ﻿@page "/translate"
 @using VigenereCipher.Data
-@using System.IO;
 @inject CipherService CipherService
-@inject IMatToaster Toaster
+@inject IMatToaster Notification
 @inject IJSRuntime JSRuntime
 
 
@@ -33,7 +32,7 @@
     </div>
     <div style="margin-top: 10px">
         <MatStringField @bind-Value="@SavedFileName" Label="File name" Icon="insert_drive_file" Required="true"></MatStringField>
-        <MatButton Raised="true" OnClick="@Download">Save result as .txt</MatButton>
+        <MatButton Raised="true" OnClick="@DownloadTxt">Save result as .txt</MatButton>
         <MatButton Raised="true" OnClick="@DownloadDocx">Save result as .docx</MatButton>
     </div>
 </div>
@@ -49,90 +48,44 @@
     private Cipher.LanguageMode Language { get; set; }
     readonly Cipher.LanguageMode[] _languageItems = Enum.GetValues(typeof(Cipher.LanguageMode)).Cast<Cipher.LanguageMode>().ToArray();
 
-    private async void Start()
+    private async Task Start()
     {
         try
         {
             OutputText = await CipherService.GetResultTextAsync(InputText, Language, Key, Crypt);
-            ShowSuccess(Crypt);
+            Notification.ShowSuccessCrypt(Crypt);
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
+            Notification.ShowError(e.Message);
         }
         finally
         {
             await InvokeAsync(StateHasChanged);
         }
     }
-
-    private void ShowError(string error)
-    {
-        Toaster.Add(error, MatToastType.Danger, "Error");
-    }
-
-    private void ShowSuccess(Cipher.CryptMode crypt)
-    {
-        switch (crypt)
-        {
-            case Cipher.CryptMode.Decrypt:
-                Toaster.Add("The text has been successfully decrypted.", MatToastType.Success, "Successfully");
-                break;
-            case Cipher.CryptMode.Encrypt:
-                Toaster.Add("The text has been successfully encrypted.", MatToastType.Success, "Successfully");
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(crypt), crypt, null);
-        }
-    }
-
-
-    private async void Download()
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
-            {
-                ShowError("There is no file name or result to save.");
-            }
-            else
-            {
-                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
-                await JSRuntime.InvokeAsync<object>(
-                    "FileSaveAs",
-                    newFileName + ".txt",
-                    OutputText
-                    );
-            }
-        }
-        catch (Exception e)
-        {
-            ShowError(e.Message);
-        }
-    }
     
-    private async void DownloadDocx()
+    private async Task DownloadTxt()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
-            {
-                ShowError("There is no file name or result to save.");
-            }
-            else
-            {
-                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
-                var content = DocumentService.DownloadDocxFromText(OutputText);
-                await JSRuntime.InvokeAsync<object>(
-                    "DocxFileSaveAs",
-                    newFileName + ".docx",
-                    Convert.ToBase64String(content)
-                    );
-            }
+            await JSRuntime.DownloadTxtFileAsync(SavedFileName, OutputText);
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
+            Notification.ShowError(e.Message);
+        }
+    }
+
+    private async Task DownloadDocx()
+    {
+        try
+        {
+            await JSRuntime.DownloadDocxFileAsync(SavedFileName, OutputText);
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
         }
     }
 }

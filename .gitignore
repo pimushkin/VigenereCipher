@@ -1,1 +1,5 @@
 .idea/
+VigenereCipher/bin/
+VigenereCipher/obj/
+VigenereCipherTest/bin/
+VigenereCipherTest/obj/

@@ -1,8 +1,7 @@
 ﻿@page "/docs"
-@using System.IO
 @using VigenereCipher.Data
 @inject IJSRuntime JSRuntime
-@inject IMatToaster Toaster
+@inject IMatToaster Notification
 
 <div>
     <div class="wrapper">
@@ -18,7 +17,7 @@
             </div>
         </div>
         <div class="right" style="width: 100%">
-            <MatFileUpload OnChange="@FilesReadyForContent"></MatFileUpload>
+            <MatFileUpload OnChange="@UploadFile"></MatFileUpload>
             <p>Single file size limit: 10MB. Allowed file types: DOCX, TXT</p>
             <p>@FileName</p>
         </div>
@@ -29,12 +28,12 @@
 </div>
 <div class="mat-elevation-z5" style="padding: 15px; margin-top: 10px">
     <div style="padding: 5px">
-        <MatTextField @bind-Value="@OutputText" TValue="string" Label="New text" FullWidth="true" TextArea="true" Rows="10" ReadOnly="true"></MatTextField>
+        <MatTextField @bind-Value="@OutputText" TValue="string" Label="Result text" FullWidth="true" TextArea="true" Rows="10" ReadOnly="true"></MatTextField>
     </div>
 </div>
 <div style="margin-top: 10px">
     <MatStringField @bind-Value="@SavedFileName" Label="File name" Icon="insert_drive_file" Required="true"></MatStringField>
-    <MatButton Raised="true" OnClick="@Download">Save result as .txt</MatButton>
+    <MatButton Raised="true" OnClick="@DownloadTxt">Save result as .txt</MatButton>
     <MatButton Raised="true" OnClick="@DownloadDocx">Save result as .docx</MatButton>
 </div>
 
@@ -50,29 +49,23 @@
     private string FileName { get; set; }
     private string SavedFileName { get; set; }
 
-    private static bool CheckFileFormat(IMatFileUploadEntry file)
-    {
-        var fileFormat = file.Name.Split('.').Last();
-        return fileFormat == "docx" || fileFormat == "txt";
-    }
-
-    private async void Start()
+    private async Task Start()
     {
         try
         {
             if (_file.GetContent() != null)
             {
-                OutputText = DocumentService.GetResultDocumentAsync(_file, Language, Key, Crypt);
-                ShowSuccessCrypt(Crypt);
+                OutputText = DocumentService.GetResultFileAsync(_file, Language, Key, Crypt);
+                Notification.ShowSuccessCrypt(Crypt);
             }
             else
             {
-                ShowError("The encryption/decryption file was not found. Upload the file.");
+                Notification.ShowError("The encryption/decryption file was not found. Upload the file.");
             }
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
+            Notification.ShowError(e.Message);
         }
         finally
         {
@@ -80,113 +73,41 @@
         }
     }
 
-    private async Task FilesReadyForContent(IMatFileUploadEntry[] files)
+    private async Task UploadFile(IMatFileUploadEntry[] files)
     {
         try
         {
-            var file = files.FirstOrDefault();
-            if (file == null)
-            {
-                return;
-            }
-            if (!CheckFileFormat(file))
-            {
-                ShowError("The file format is not supported. Upload DOCX or TXT.");
-                return;
-            }
-            if (file.Size > 1024 * 1024 * 10)
-            {
-                ShowError("A file larger than 10 MB.");
-            }
-            else
-            {
-                _file = await new Document().UploadFile(file);
-                FileName = file.Name;
-                ShowSuccessUploading();
-            }
+            _file = await UploadService.UploadFileAsync(files);
+            FileName = files.FirstOrDefault()?.Name;
+            Notification.ShowSuccessUploading();
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
-        }
-        finally
-        {
-            await InvokeAsync(StateHasChanged);
+            Notification.ShowError(e.Message);
         }
     }
 
-    private void ShowError(string error)
-    {
-        Toaster.Add(error, MatToastType.Danger, "Error");
-    }
-
-    private void ShowSuccessCrypt(Cipher.CryptMode crypt)
-    {
-        switch (crypt)
-        {
-            case Cipher.CryptMode.Decrypt:
-                Toaster.Add("The text has been successfully decrypted.", MatToastType.Success, "Successfully");
-                break;
-            case Cipher.CryptMode.Encrypt:
-                Toaster.Add("The text has been successfully encrypted.", MatToastType.Success, "Successfully");
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(crypt), crypt, null);
-        }
-    }
-
-    private void ShowSuccessUploading()
-    {
-        Toaster.Add("The file was uploaded successfully.", MatToastType.Success, "Successfully");
-    }
-
-    private async void Download()
+    private async Task DownloadTxt()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
-            {
-                ShowError("There is no file name or result to save.");
-            }
-            else
-            {
-                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
-
-                await JSRuntime.InvokeAsync<object>(
-                    "FileSaveAs",
-                    newFileName + ".txt",
-                    OutputText
-                    );
-            }
+            await JSRuntime.DownloadTxtFileAsync(SavedFileName, OutputText);
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
+            Notification.ShowError(e.Message);
         }
     }
 
-    private async void DownloadDocx()
+    private async Task DownloadDocx()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(SavedFileName) || string.IsNullOrWhiteSpace(OutputText))
-            {
-                ShowError("There is no file name or result to save.");
-            }
-            else
-            {
-                var newFileName = Path.GetInvalidFileNameChars().Aggregate(SavedFileName, (current, invalidChar) => current.Replace(invalidChar.ToString(), "_"));
-                var content = DocumentService.DownloadDocxFromText(OutputText);
-                await JSRuntime.InvokeAsync<object>(
-                    "DocxFileSaveAs",
-                    newFileName + ".docx",
-                    Convert.ToBase64String(content)
-                    );
-            }
+            await JSRuntime.DownloadDocxFileAsync(SavedFileName, OutputText);
         }
         catch (Exception e)
         {
-            ShowError(e.Message);
+            Notification.ShowError(e.Message);
         }
     }
 }

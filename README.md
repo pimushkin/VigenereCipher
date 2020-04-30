@@ -7,6 +7,8 @@
 ## General info
 This web application is the coursework([text of task](./task/Курсовой%20проект%20v5.pdf)) of the additional course "NowYouSeeSharp" held at ITMO University by [First Line Software](https://firstlinesoftware.ru/). This app is designed to encrypt and decrypt text using the Vigenere cipher. It can also work with docx and txt files.
 
+The app is available at https://vigeneresolver.azurewebsites.net/
+
 ## Interface design
 ![User Interface](./images/translate.png)
 ![User Interface](./images/navmenu.png)

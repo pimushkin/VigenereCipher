@@ -9,8 +9,8 @@ namespace VigenereCipher.Data
 {
     public class Document
     {
-        private string _txtContent;
         private byte[] _bytesOfDocx;
+        private string _txtContent;
 
         private byte[] BytesOfFile
         {
@@ -32,6 +32,12 @@ namespace VigenereCipher.Data
             }
         }
 
+        /// <summary>
+        ///     Method for uploading the file.
+        /// </summary>
+        /// <param name="file">DOCX ot TXT file.</param>
+        /// <returns>Object of the class that the file is stored inside.</returns>
+        /// <exception cref="Exception">Error in the file format that is being uploaded.</exception>
         public async Task<Document> UploadFile(IMatFileUploadEntry file)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -61,15 +67,9 @@ namespace VigenereCipher.Data
 
         public dynamic GetContent()
         {
-            if (BytesOfFile != null)
-            {
-                return BytesOfFile;
-            }
+            if (BytesOfFile != null) return BytesOfFile;
 
-            if (TxtContent != null)
-            {
-                return TxtContent;
-            }
+            if (TxtContent != null) return TxtContent;
 
             throw new Exception("Content is missing. You need to download the file first.");
         }
