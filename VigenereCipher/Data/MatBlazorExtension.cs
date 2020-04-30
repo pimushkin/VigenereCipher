@@ -3,7 +3,7 @@ using MatBlazor;
 
 namespace VigenereCipher.Data
 {
-    public static class NotificationService
+    public static class MatBlazorExtension
     {
         /// <summary>
         ///     Displays a notification with information about successful encryption or decryption.

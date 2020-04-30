@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -26,7 +27,7 @@ namespace VigenereCipher.Data
         {
             if (file.GetContent() is byte[] bytesOfDocx)
             {
-                var stream = new MemoryStream();
+                using var stream = new MemoryStream();
                 var result = new StringBuilder();
                 stream.Write(bytesOfDocx, 0, bytesOfDocx.Length);
                 using var wordDocument = WordprocessingDocument.Open(stream, true);
@@ -51,16 +52,27 @@ namespace VigenereCipher.Data
         /// <exception cref="Exception">The input text is empty.</exception>
         public static byte[] GetDocxBytesFromText(string text)
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             if (string.IsNullOrWhiteSpace(text)) throw new Exception("The file content was not detected.");
-            var ms = new MemoryStream();
+            using var ms = new MemoryStream();
             using var wordDocument =
                 WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true);
 
             var mainPart = wordDocument.AddMainDocumentPart();
-            var body = new Body(new Paragraph(new Run(new Text(text))));
-            mainPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document(body);
-            wordDocument.Save();
+            mainPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document();
+            var body = mainPart.Document.AppendChild(new Body());
+            var para = body.AppendChild(new Paragraph());
+            var run = para.AppendChild(new Run());
+            var texts = text.Split(new[] {"\r\n", "\n"}, StringSplitOptions.None).ToList();
+            if (texts.Last() == "") texts.RemoveAt(texts.Count - 1);
+            for (var i = 0; i < texts.Count; i++)
+            {
+                if (i > 0)
+                    run.AppendChild(new Break());
+
+                var newText = new Text {Text = texts[i]};
+                run.AppendChild(newText);
+            }
+
             wordDocument.Close();
             return ms.ToArray();
         }
