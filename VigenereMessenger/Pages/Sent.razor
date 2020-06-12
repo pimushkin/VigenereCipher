@@ -1,0 +1,153 @@
+﻿@page "/sent"
+
+@using VigenereMessenger.Data
+@using Messenger.Data.Messenger
+@inject IJSRuntime JSRuntime
+@inject IMatToaster Notification
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inherits OwningComponentBase<MessageService>
+
+<AuthorizeView>
+    <Authorized>
+        <h1>Sent Message</h1>
+        @if (Messages == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <MatTable Items="@Messages" class="mat-elevation-z5" AllowSelection="true" SelectionChanged="ViewMessage">
+
+                <MatTableHeader>
+                    <th>Receiver</th>
+                    <th>Topic</th>
+                </MatTableHeader>
+                <MatTableRow Context="Message">
+                    <td>@Message.Receiver</td>
+                    <td>@Message.Topic</td>
+                </MatTableRow>
+            </MatTable>
+            <MatDialog @bind-IsOpen="@DialogIsOpen">
+
+                <MatDialogTitle>Topic: @_selectedTopic</MatDialogTitle>
+                <MatDialogContent>
+                    <div>
+                        <div class="mat-elevation-z5" style="padding: 15px">
+                            <MatTextField @bind-Value="@_selectedMessage" Label="Content" FullWidth="true" ReadOnly="true" TextArea="true" Rows="10"></MatTextField>
+                        </div>
+                        <div style="margin-top: 30px">
+                            <MatStringField @bind-Value="@Key" Label="Key" Icon="vpn_key" Outlined="true" Required="true"></MatStringField>
+                        </div>
+                        <div style="margin-top: 15px">
+                            <MatSelectItem @bind-Value="@Language" Label="Language" Items="@_languageItems"></MatSelectItem>
+                        </div>
+                        <div style="margin-top: 10px">
+                            <MatButton Raised="true" OnClick="@Start">Start</MatButton>
+                        </div>
+                        <div class="mat-elevation-z5" style="padding: 15px; margin-top: 10px">
+                            <MatTextField @bind-Value="@OutputText" Label="Decrypted content" FullWidth="true" ReadOnly="true" TextArea="true" Rows="10"></MatTextField>
+                        </div>
+                        <div style="margin-top: 10px">
+                            <MatStringField @bind-Value="@SavedFileName" Label="File name" Icon="insert_drive_file" Required="true"></MatStringField>
+                            <MatButton Raised="true" OnClick="@DownloadTxt">Save result as .txt</MatButton>
+                            <MatButton Raised="true" OnClick="@DownloadDocx">Save result as .docx</MatButton>
+                        </div>
+                    </div>
+                </MatDialogContent>
+                <MatDialogActions>
+                    <MatButton OnClick="@(e => { DialogIsOpen = false; })">Close</MatButton>
+                </MatDialogActions>
+            </MatDialog>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>You're not signed in.</p>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    private string OutputText { get; set; }
+    private string Key { get; set; }
+    private Cipher.CryptMode Crypt { get; set; } = Cipher.CryptMode.Decrypt;
+    private Cipher.LanguageMode Language { get; set; }
+    readonly Cipher.LanguageMode[] _languageItems = Enum.GetValues(typeof(Cipher.LanguageMode)).Cast<Cipher.LanguageMode>().ToArray();
+    private string SavedFileName { get; set; }
+    List<Messages> Messages { get; set; }
+    private string _selectedTopic;
+    private string _selectedMessage;
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    bool _dialogIsOpen;
+
+    bool DialogIsOpen
+    {
+        get => _dialogIsOpen;
+        set
+        {
+            _dialogIsOpen = value;
+            if (value) return;
+            _selectedTopic = null;
+            _selectedMessage = null;
+            OutputText = null;
+            Key = null;
+            Language = Cipher.LanguageMode.Russian;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await authenticationStateTask).User;
+        Messages = await @Service.GetSentMessageAsync(user.Identity.Name);
+        Messages.Reverse();
+    }
+
+    public void ViewMessage(object row)
+    {
+        if (row != null)
+        {
+            DialogIsOpen = true;
+            _selectedTopic = ((Messages)row).Topic;
+            _selectedMessage = ((Messages)row).Message;
+        }
+        StateHasChanged();
+    }
+
+    private async Task Start()
+    {
+        try
+        {
+            OutputText = await CipherService.GetResultTextAsync(_selectedMessage, Language, Key, Crypt);
+            Notification.ShowSuccessCrypt(Crypt);
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task DownloadTxt()
+    {
+        try
+        {
+            await JSRuntime.DownloadTxtFileAsync(SavedFileName, OutputText);
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+    }
+
+    private async Task DownloadDocx()
+    {
+        try
+        {
+            await JSRuntime.DownloadDocxFileAsync(SavedFileName, OutputText);
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+    }
+}

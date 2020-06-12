@@ -1,0 +1,170 @@
+﻿@page "/new"
+
+@using VigenereMessenger.Data
+@using Messenger.Data.Messenger
+@using Microsoft.Extensions.DependencyInjection
+@inject IJSRuntime JSRuntime
+@inject IMatToaster Notification
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inherits OwningComponentBase
+
+<AuthorizeView>
+    <Authorized>
+        <h1>New Message</h1>
+        <MatTabGroup>
+            <MatTab Label="Text">
+                <div>
+                    <div style="margin-top: 10px">                        
+                        <MatStringField @bind-Value="@_message.Receiver" Label="Username of receiver" Icon="account_circle" Required="true"></MatStringField>
+                    </div>
+                    <div style="margin-top: 15px">
+                        <MatStringField @bind-Value="@_message.Topic" Label="Topic" Required="true"></MatStringField>
+                    </div>
+                    <div class="mat-elevation-z5" style="padding: 15px; margin-top: 15px">
+                        <MatTextField @bind-Value="@InputText" Label="Content" FullWidth="true" TextArea="true" Rows="10" Required="true"></MatTextField>
+                    </div>
+                    <div style="margin-top: 30px">
+                        <MatStringField @bind-Value="@Key" Label="Key" Icon="vpn_key" Required="true"></MatStringField>
+                    </div>
+                    <div style="margin-top: 15px">
+                        <MatSelectItem @bind-Value="@Language" Label="Language" Items="@_languageItems"></MatSelectItem>
+                    </div>
+                    <div style="margin-top: 10px">
+                        <MatButton Raised="true" OnClick="@SendTextMessage">Send</MatButton>
+                    </div>
+                </div>
+            </MatTab>
+            <MatTab Label="Document">
+                <div>
+                    <div style="margin-top: 10px">
+                        <MatStringField @bind-Value="@_message.Receiver" Label="Username of receiver" Icon="account_circle" Required="true"></MatStringField>
+                    </div>
+                    <div style="margin-top: 15px">
+                        <MatStringField @bind-Value="@_message.Topic" Label="Topic" Required="true"></MatStringField>
+                    </div>
+                    <div style="margin-top: 15px">
+                        <MatFileUpload OnChange="@UploadFile"></MatFileUpload>
+                        <p>Single file size limit: 10MB. Allowed file types: DOCX, TXT</p>
+                        <p>@FileName</p>
+                    </div>
+                    <div style="margin-top: 30px">
+                        <MatStringField @bind-Value="@Key" Label="Key" Icon="vpn_key" Required="true"></MatStringField>
+                    </div>
+                    <div style="margin-top: 15px">
+                        <MatSelectItem @bind-Value="@Language" Label="Language" Items="@_languageItems"></MatSelectItem>
+                    </div>
+                    <div style="margin-top: 10px">
+                        <MatButton Raised="true" OnClick="@SendDocument">Send</MatButton>
+                    </div>
+                </div>
+            </MatTab>
+        </MatTabGroup>
+    </Authorized>
+    <NotAuthorized>
+        <p>You're not signed in.</p>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    private string InputText { get; set; }
+    private string FileName { get; set; }
+    private string Key { get; set; }
+    private Cipher.LanguageMode Language { get; set; }
+    readonly Cipher.LanguageMode[] _languageItems = Enum.GetValues(typeof(Cipher.LanguageMode)).Cast<Cipher.LanguageMode>().ToArray();
+    private Document _file = new Document();
+    private UserService UserService { get; set; }
+    private MessageService MessageService { get; set; }
+    Messages _message = new Messages();
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UserService = ScopedServices.GetRequiredService<UserService>();
+        MessageService = ScopedServices.GetRequiredService<MessageService>();
+    }
+
+    private async Task SaveMessage()
+    {
+        var user = (await AuthenticationStateTask).User;
+        if (_message.Receiver == user.Identity.Name)
+        {
+            throw new Exception("You can't send a message to yourself.");
+        }
+        if (!await UserService.CheckUserExistence(_message.Receiver))
+        {
+            throw new Exception("There is no such recipient. Check the address you entered.");
+        }
+        var message = new Messages
+        {
+            Topic = _message.Topic,
+            Message = _message.Message,
+            Receiver = _message.Receiver,
+            Sender = user.Identity.Name
+        };
+        MessageService.CreateMessageAsync(message);
+        _message = new Messages { Id = 0 };
+        InputText = null;
+        FileName = null;
+        _file = null;
+        Key = null;
+    }
+    private async Task SendTextMessage()
+    {
+        try
+        {
+            _message.Message = await CipherService.GetResultTextAsync(InputText, Language, Key, Cipher.CryptMode.Encrypt);
+            await SaveMessage();
+            Notification.ShowSuccessSending();
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task SendDocument()
+    {
+        try
+        {
+            if (_file.GetContent() != null)
+            {
+                _message.Message = DocumentService.GetResultFile(_file, Language, Key, Cipher.CryptMode.Encrypt);
+                await SaveMessage();
+                Notification.ShowSuccessSending();
+            }
+            else
+            {
+                Notification.ShowError("The file for sending the message is missing.. Upload the file.");
+            }
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UploadFile(IMatFileUploadEntry[] files)
+    {
+        try
+        {
+            _file = await UploadService.UploadFileAsync(files);
+            FileName = files.FirstOrDefault()?.Name;
+            Notification.ShowSuccessUploading();
+        }
+        catch (Exception e)
+        {
+            Notification.ShowError(e.Message);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}
