@@ -1,0 +1,23 @@
+version: '3.4'
+
+services:
+  web:
+    image: messenger-web
+    environment:
+      - DB_NAME=master
+      - DB_USER_ID=sa
+      - DB_USER_PASSWORD=Aa123456!
+      - DB_SERVER=mssql
+    ports:
+      - 80:80
+    build:
+      context: .
+      dockerfile: Dockerfile
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Aa123456!
+      - MSSQL_PID=Express
+    ports:
+      - 1433:1433

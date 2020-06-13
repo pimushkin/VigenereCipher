@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,9 +35,17 @@ namespace VigenereMessenger
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            var connectionStringBuilder = new SqlConnectionStringBuilder
+            {
+                DataSource = Environment.GetEnvironmentVariable("DB_SERVER"),
+                InitialCatalog = Environment.GetEnvironmentVariable("DB_NAME"),
+                UserID = Environment.GetEnvironmentVariable("DB_USER_ID"),
+                Password = Environment.GetEnvironmentVariable("DB_USER_PASSWORD"),
+            };
+
+
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(connectionStringBuilder.ConnectionString));
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddRazorPages();
@@ -57,8 +66,7 @@ namespace VigenereMessenger
             services.AddScoped<UserService>();
             services.AddScoped<HttpClient>();
             services.AddDbContext<MessengerContext>(options =>
-                options.UseSqlServer(
-                    Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(connectionStringBuilder.ConnectionString));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
