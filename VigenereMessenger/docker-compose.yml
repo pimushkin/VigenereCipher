@@ -4,20 +4,22 @@ services:
   web:
     image: messenger-web
     environment:
-      - DB_NAME=master
+      - DB_NAME=VigenereMessenger
       - DB_USER_ID=sa
-      - DB_USER_PASSWORD=Aa123456!
+      - DB_USER_PASSWORD=0l4gA4wOimGJB13z
       - DB_SERVER=mssql
     ports:
       - 80:80
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - mssql
   mssql:
     image: mcr.microsoft.com/mssql/server:2017-latest-ubuntu
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=Aa123456!
+      - SA_PASSWORD=0l4gA4wOimGJB13z
       - MSSQL_PID=Express
     ports:
       - 1433:1433

@@ -35,14 +35,25 @@ namespace VigenereMessenger
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            var connectionStringBuilder = new SqlConnectionStringBuilder
+            var connectionStringBuilder = new SqlConnectionStringBuilder();
+            if (!(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_SERVER")) || 
+                  string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_NAME")) || 
+                  string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_USER_ID")) || 
+                  string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_USER_PASSWORD"))))
             {
-                DataSource = Environment.GetEnvironmentVariable("DB_SERVER"),
-                InitialCatalog = Environment.GetEnvironmentVariable("DB_NAME"),
-                UserID = Environment.GetEnvironmentVariable("DB_USER_ID"),
-                Password = Environment.GetEnvironmentVariable("DB_USER_PASSWORD"),
-            };
-
+                connectionStringBuilder = new SqlConnectionStringBuilder
+                {
+                    DataSource = Environment.GetEnvironmentVariable("DB_SERVER"),
+                    InitialCatalog = Environment.GetEnvironmentVariable("DB_NAME"),
+                    UserID = Environment.GetEnvironmentVariable("DB_USER_ID"),
+                    Password = Environment.GetEnvironmentVariable("DB_USER_PASSWORD"),
+                    MultipleActiveResultSets = true
+                };
+            }
+            else
+            {
+                connectionStringBuilder.ConnectionString = Configuration.GetConnectionString("DefaultConnection");
+            }
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionStringBuilder.ConnectionString));
