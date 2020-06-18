@@ -4,10 +4,12 @@ services:
   web:
     image: messenger-web
     environment:
-      - DB_NAME=VigenereMessenger
+      - DB_SERVER=mssql
+      - DB_NAME=aspnet-VigenereMessenger-F9CAC977-9D98-4D02-95FF-A8F08F1F4F21
       - DB_USER_ID=sa
       - DB_USER_PASSWORD=0l4gA4wOimGJB13z
-      - DB_SERVER=mssql
+      - GOOGLE_CLIENT_ID=
+      - GOOGLE_CLIENT_SECRET=
     ports:
       - 80:80
     build:

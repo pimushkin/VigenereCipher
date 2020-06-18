@@ -35,6 +35,25 @@ namespace VigenereMessenger
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            if (!(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")) || 
+                  string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET"))))
+            {
+                services.AddAuthentication().AddGoogle(googleOptions =>
+                {
+                    googleOptions.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+                    googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+                });
+            }
+            else if (!(string.IsNullOrWhiteSpace(Configuration["GoogleClientId"]) ||
+                       string.IsNullOrWhiteSpace(Configuration["GoogleClientSecret"])))
+            {
+                services.AddAuthentication().AddGoogle(googleOptions =>
+                {
+                    googleOptions.ClientId = Configuration["GoogleClientId"];
+                    googleOptions.ClientSecret = Configuration["GoogleClientSecret"];
+                });
+            }
+
             var connectionStringBuilder = new SqlConnectionStringBuilder();
             if (!(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_SERVER")) || 
                   string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_NAME")) || 
