@@ -1,14 +1,18 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:latest
-RUN dotnet tool install -g dotnet-ef
-ENV PATH="${PATH}:/root/.dotnet/tools"
-WORKDIR /src
-COPY ["VigenereMessenger.csproj", "VigenereMessenger/"]
-RUN dotnet restore "VigenereMessenger/VigenereMessenger.csproj"
-WORKDIR "/src/VigenereMessenger"
-COPY . .
-RUN dotnet build "VigenereMessenger.csproj" -c Release -o /app/build
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
+WORKDIR /app
 
+# Copy csproj and restore as distinct layers
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy everything else and build
+COPY . ./
+RUN dotnet publish -c Release -o out
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+WORKDIR /app
+COPY --from=build-env /app/out .
 ENV ASPNETCORE_URLS http://*:80
-
-RUN chmod +x ./entrypoint.sh
-CMD /bin/bash ./entrypoint.sh
+ENV ASPNETCORE_ENVIRONMENT Docker
+ENTRYPOINT ["dotnet", "VigenereMessenger.dll"]

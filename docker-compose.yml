@@ -13,7 +13,7 @@ services:
     ports:
       - 80:80
     build:
-      context: .
+      context: ./VigenereMessenger
       dockerfile: Dockerfile
     depends_on:
       - mssql
