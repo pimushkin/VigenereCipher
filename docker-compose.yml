@@ -3,6 +3,7 @@ version: '3.4'
 services:
   web:
     image: messenger-web
+    container_name: VigenereMessenger
     environment:
       - DB_SERVER=mssql
       - DB_NAME=aspnet-VigenereMessenger-F9CAC977-9D98-4D02-95FF-A8F08F1F4F21
@@ -10,6 +11,8 @@ services:
       - DB_USER_PASSWORD=0l4gA4wOimGJB13z
       - GOOGLE_CLIENT_ID=
       - GOOGLE_CLIENT_SECRET=
+      - SEQ_SERVER_URL=http://seq:5341
+      - SEQ_API_KEY=
     ports:
       - 80:80
     build:
@@ -17,11 +20,21 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - mssql
+      - seq
   mssql:
     image: mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+    container_name: VigenereMessenger-mssql
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=0l4gA4wOimGJB13z
       - MSSQL_PID=Express
     ports:
       - 1433:1433
+      
+  seq:
+    image: datalust/seq
+    container_name: VigenereMessenger-seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - 5341:80

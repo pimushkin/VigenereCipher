@@ -44,13 +44,13 @@ namespace VigenereMessenger
                     googleOptions.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
                 });
             }
-            else if (!(string.IsNullOrWhiteSpace(Configuration["GoogleClientId"]) ||
-                       string.IsNullOrWhiteSpace(Configuration["GoogleClientSecret"])))
+            else if (!(string.IsNullOrWhiteSpace(Configuration["OAuth:GoogleClientId"]) ||
+                       string.IsNullOrWhiteSpace(Configuration["OAuth:GoogleClientSecret"])))
             {
                 services.AddAuthentication().AddGoogle(googleOptions =>
                 {
-                    googleOptions.ClientId = Configuration["GoogleClientId"];
-                    googleOptions.ClientSecret = Configuration["GoogleClientSecret"];
+                    googleOptions.ClientId = Configuration["OAuth:GoogleClientId"];
+                    googleOptions.ClientSecret = Configuration["OAuth:GoogleClientSecret"];
                 });
             }
 
